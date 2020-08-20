@@ -70,8 +70,8 @@ namespace System
                                     Log2_E = new Half(LOG2_E),
                                     Log2_10 = new Half(LOG2_10),
                                     Sqrt2 = new Half(SQRT_2);
-        internal static readonly float EpsilonS = 0.0009765625f;
-        internal static readonly double EpsilonD = 0.0009765625;
+        internal const float EpsilonS = 0.0009765625f;
+        internal const double EpsilonD = 0.0009765625;
 
         public const int MaximumBase10Exponent = 38,
                          MinimumBase10Exponent = -37,

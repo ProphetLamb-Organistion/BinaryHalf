@@ -4,38 +4,31 @@ using System.Runtime.InteropServices;
 
 namespace System
 {
+    [Serializable]
     [StructLayout(LayoutKind.Explicit, Size = 2)]
     public readonly partial struct Half :
         IComparable, IConvertible, IFormattable,
         IComparable<Half>, IComparable<float>, IComparable<double>,
         IEquatable<Half>, IEquatable<float>, IEquatable<double>
     {
-        // IEEE 754 16bit binary floating point masking and flag constants.
-        private const ushort SIGN_MASK = 0x8000,
-                             BIASED_EXPONENT_MASK = 0x7C00,
-                             MANTISSA_MASK = 0x03FF,
-                             EXPONENT_BIAS = 15,
-                             SIGNIFICANT_BIT_FLAG = 0x0200,
-                             SIGNALING_NAN_FLAG = 0x0100,
-                             BIASED_OR_SIGNIFICANT_MASK = BIASED_EXPONENT_MASK | SIGNIFICANT_BIT_FLAG,
-                             MAX_BIASED_EXPONENT_VALUE = 0x1F;
         [FieldOffset(0)]
         private readonly ushort _storage;
 
         private Half(ushort binaryData) => _storage = binaryData;
 
-        public static Half FromBytes(ushort littleEdian)
+        public static Half FromBits(ushort littleEdian)
         {
             return new Half(littleEdian);
         }
 
-        public static Half FromBigEdianBytes(ushort bigEdian)
+        public static Half FromBigEdianBits(ushort bigEdian)
         {
             byte[] bytes = BitConverter.GetBytes(bigEdian);
             Array.Reverse(bytes);
             return new Half(BitConverter.ToUInt16(bytes));
         }
 
+        #region Static members
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsNegative(in Half value) => (value._storage & SIGN_MASK) == SIGN_MASK;
 
@@ -91,15 +84,15 @@ namespace System
 
         // Signaling nan flag bit - 2nd mantissa bit - is set.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsSignaling(in Half value) => (value._storage & SIGNALING_NAN_FLAG) != 0;
+        public static bool IsSignaling(in Half value) => (value._storage & SIGNALING_NAN_FLAG) != 0;
 
         // Payload mask is 0x00FF - the 2nd byte of the _storage. It can be obtained by left shifting 8 bits.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public byte GetSignalingNaNPayload()
+        public static byte GetSignalingNaNPayload(in Half value)
         {
             unchecked
             {
-                return (byte)(_storage << 8);
+                return (byte)(value._storage << 8);
             }
         }
 
@@ -118,6 +111,7 @@ namespace System
         {
             return IsInfinity(value) && (sign > 0 ? !IsNegative(value) : (sign <= 0 || IsNegative(value)));
         }
+        #endregion
 
         public string ToString(string format, IFormatProvider formatProvider) => ((float)this).ToString(format, formatProvider);
     }

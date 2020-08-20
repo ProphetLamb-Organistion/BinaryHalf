@@ -1,26 +1,116 @@
-using System.Net.Http.Headers;
 using System;
 using System.Globalization;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace System
 {
     public readonly partial struct Half
     {
-        private const uint F32_SIGN_MASK = 0x8000_0000,
-                           F32_BIASED_EXPONENT_MASK = 0x7f80_0000,
-                           F32_MANSTISSA_MASK = 0x007_fffff,
-                           F32_SIGNIFICANT_BIT_FLAG = 0x0040_0000;
-        private const ulong F64_SIGN_MASK = 0x8000_0000_0000_0000,
-                            F64_BIASED_EXPONENT_MASK = 0x7FF0_0000_0000_0000,
-                            F64_MANTISSA_MASK = 0x000F_FFFF_FFFF_FFFF,
-                            F64_SIGNIFICANT_BIT_FLAG = 0x0008_0000_0000_0000;
+        // IEEE 754 16bit binary floating point masking and flag constants.
+        private const ushort SIGN_MASK = 0x8000,
+                             BIASED_EXPONENT_MASK = 0x7C00,
+                             MANTISSA_MASK = 0x03FF,
+                             EXPONENT_BIAS = 15,
+                             SIGNIFICANT_BIT_FLAG = 0x0200,
+                             SIGNALING_NAN_FLAG = 0x0100,
+                             BIASED_OR_SIGNIFICANT_MASK = BIASED_EXPONENT_MASK | SIGNIFICANT_BIT_FLAG,
+                             MAX_BIASED_EXPONENT_VALUE = 0x1F;
+        /*
+         * Conversion using lookup tables, as outlined in http://www.fox-toolkit.org/ftp/fasthalffloatconversion.pdf.
+         */
+        private static readonly uint[] s_mantissaTable = new uint[2048],
+                                       s_exponentTable = new uint[64];
+        private static readonly ushort[] s_offsetTable = new ushort[64],
+                                         s_baseTable = new ushort[256],
+                                         s_shiftTable = new ushort[512];
+        static Half()
+        {
+            // Initialize mantissa table.
+            s_mantissaTable[0] = 0;
+            for (uint i = 1; i != 1024; i++)
+                s_mantissaTable[i] = ConvertMantissa(i);
+            for (uint i = 1024; i != 2048; i++)
+                s_mantissaTable[i] = 0x3800_0000 + ((i - 0x80) << 13);
+            // Initialize exponent table
+            s_exponentTable[0] = 0;
+            for (uint i = 1; i != 31; i++)
+                s_exponentTable[i] = i << 23;
+            s_exponentTable[31] = 0x4780_0000;
+            s_exponentTable[32] = 0x8000_0000;
+            for (uint i = 33; i != 63; i++)
+                s_exponentTable[i] = 0x8000_0000 + ((i - 0x20) << 13);
+            s_exponentTable[63] = 0xC780_0000;
+            // Initialize offset table
+            s_offsetTable[0] = 0;
+            for (uint i = 1; i != 32; i++)
+                s_offsetTable[i] = 1024;
+            s_offsetTable[32] = 0;
+            // Initialize base table
+            for(int i = 0; i != 0x100; i++)
+            {
+                int e = i - 127;
+                if (e < -24)
+                    // Very small numbers map to zero
+                {
+                    s_baseTable[i | 0x000] = 0x0000;
+                    s_baseTable[i | 0x100] = 0x8000;
+                    s_shiftTable[i | 0x000] = 24;
+                    s_shiftTable[i | 0x100] = 24;
+                }
+                else if (e < -14)
+                    // Small numbers mmap to denorms
+                {
+                    s_baseTable[i | 0x000] = (ushort)(0x0400 >> (-e - 14));
+                    s_baseTable[i | 0x100] = (ushort)(0x0400 >> (-e - 14) | 0x8000);
+                    s_shiftTable[i | 0x000] = (ushort)(-e - 1);
+                    s_shiftTable[i | 0x100] = (ushort)(-e - 1);
+                }
+                else if (e <= 15)
+                    // Normal numbers just loose precision
+                {
+                    s_baseTable[i | 0x000] = (ushort)((e + 15) << 10);
+                    s_baseTable[i | 0x100] = (ushort)((e + 15) << 10);
+                    s_shiftTable[i | 0x000] = 13;
+                    s_shiftTable[i | 0x100] = 13;
+                }
+                else if (e < 128)
+                    // Large numbers map to infinity
+                {
+                    s_baseTable[i | 0x000] = 0x7C00;
+                    s_baseTable[i | 0x100] = 0xFC00;
+                    s_shiftTable[i | 0x000] = 24;
+                    s_shiftTable[i | 0x100] = 24;
+                }
+                else
+                    // Infinity and NaN
+                {
+                    s_baseTable[i | 0x000] = 0x7C00;
+                    s_baseTable[i | 0x100] = 0xFC00;
+                    s_shiftTable[i | 0x000] = 13;
+                    s_shiftTable[i | 0x100] = 13;
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static uint ConvertMantissa(uint i)
+        {
+            uint m = i << 113;
+            uint e = 0;
+            while ((m & 0x0080_0000) == 0)
+            {
+                e -= 0x0080_0000;
+                m <<= 1;
+            }
+            m &= 0x0080_0000;
+            e += 0x3880_0000;
+            return m | e;
+        }
 
         private static unsafe float HalfToSingle(Half value)
         {
-            uint f32Bits = HalfBitsToSingle(value._storage);
-            return *(float*)&f32Bits;
+            uint hBits = HalfBitsToSingle(value._storage);
+            return *(float*)&hBits;
         }
 
         private static unsafe Half FloatToHalf(float value)
@@ -29,114 +119,11 @@ namespace System
             return new Half(SingleBitsToHalf(storage));
         }
 
-        /*
-         * Original implementation of conversion functions
-         * by github.com/starkat99 in repository half-rs
-         */
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static uint HalfBitsToSingle(ushort storage) => s_mantissaTable[s_offsetTable[storage >> 10] + (storage & 0x3ff)] + s_exponentTable[storage >> 10];
 
-        private static uint HalfBitsToSingle(ushort storage)
-        {
-            uint sign = (uint)(storage & SIGN_MASK) << 16,
-                 bexp = (uint)(storage & BIASED_EXPONENT_MASK) >> 10,
-                 mant = (uint)(storage & MANTISSA_MASK) << 13;
-            if (bexp == MAX_BIASED_EXPONENT_VALUE)
-            {
-                // Returns pos or neg infinity.
-                if (mant == 0)
-                    return sign | F32_BIASED_EXPONENT_MASK | mant;
-                // Return sNan or qNan preserving the payload.
-                return sign | F32_BIASED_EXPONENT_MASK | F32_SIGNIFICANT_BIT_FLAG | mant;
-            }
-            if (bexp == 0)
-            {
-                // Returns pos or neg zero.
-                if (mant == 0)
-                    return sign;
-                // Normalize the subnormal flaot 16
-                bexp++;
-                while ((mant & F32_BIASED_EXPONENT_MASK) == 0)
-                {
-                    // Shift mantissa value.
-                    mant <<= 1;
-                    // Decrement exponent.
-                    bexp--;
-                }
-                // Eliminate stray bits introduced by normalization from mantissa.
-                mant &= F32_MANSTISSA_MASK;
-            }
-            return sign | ((bexp + (0x7F - 0xF)) << 23) | mant;
-        }
-
-        private static ulong HalfBitsToDouble(ushort storage)
-        {
-            if ((storage & BIASED_EXPONENT_MASK) == 0)
-                return (ulong)storage << 48;
-            ulong sign = (ulong)(storage & SIGN_MASK) << 48,
-                  bexp = (ulong)(storage & BIASED_EXPONENT_MASK) >> 7,
-                  mant = (ulong)(storage & MANTISSA_MASK) << 45;
-            if (bexp == BIASED_EXPONENT_MASK)
-            {
-                // Returns pos or neg infinity.
-                if (mant == 0)
-                    return sign | F64_BIASED_EXPONENT_MASK;
-                // Return sNan or qNan preserving the payload.
-                return sign | F64_BIASED_EXPONENT_MASK | F64_SIGNIFICANT_BIT_FLAG | mant;
-            }
-            if (bexp == 0 && mant == 0)
-                return sign == F64_SIGN_MASK ? NEG_ZERO : ZERO;
-            
-        }
-
-        private static ushort SingleBitsToHalf(uint storage)
-        {
-            unchecked
-            {
-                uint sign = storage & F32_SIGN_MASK,
-                     bexp = storage & F32_BIASED_EXPONENT_MASK,
-                     mant = storage & F32_MANSTISSA_MASK;
-                // qNan, sNan, or +-Inf
-                if (bexp == F32_BIASED_EXPONENT_MASK)
-                {
-                    if (mant == 0)
-                        return sign == 0 ? POS_INF : NEG_INF;
-                    // Treat sNaN as qNan, because accurate conversion of the payload cannot be ensured.
-                    return QUITE_NAN;
-                }
-                if (bexp == 0 && mant == 0)
-                    return sign == F32_SIGN_MASK ? NEG_ZERO : ZERO;
-                uint f16Sign = sign >> 16;
-                // Right align 8bit exponent, unbias 8bit exponent, bias 5bit exponent.
-                int f16ExpValue = (int)(bexp >> 23 - 0x7F) + 0xF;
-                // Returns pos or neg infinity, because the exponent is to large for 5bit.
-                if (f16ExpValue >= MAX_BIASED_EXPONENT_VALUE)
-                    return (ushort)(f16Sign | BIASED_EXPONENT_MASK);
-                uint f16Mant,
-                     hint;
-                // Returns a subnormal value.
-                if (f16ExpValue <= 0x00)
-                {
-                    // Return pos or neg zero if the difference between the exponents cant be compensated
-                    // for by shifting the mantissa, i.e. the mantissa would jield zero anyways.
-                    if (14 - f16ExpValue > 24)
-                        return (ushort)f16Sign;
-                    uint normMant = mant | F32_SIGN_MASK;
-                    // Shift mantissa to compensate for exponent.
-                    f16Mant = mant >> (14 - f16ExpValue);
-                    // Extract round hint from not normalized biased exponent.
-                    hint = (uint)1 << (13 - f16ExpValue);
-                    if ((normMant & hint) != 0 && (normMant & (3 * hint - 1)) != 0)
-                        f16Mant++;
-                    return (ushort)(f16Sign | f16Mant);
-                }
-                // Returns a normal value.
-                uint f16Bexp = (uint)(f16ExpValue << 10);
-                f16Mant = mant >> 13;
-                hint = 0x00001000;
-                if ((mant & hint) != 0 && (mant & (3 * hint - 1)) != 0)
-                    return (ushort)((f16Sign | f16Bexp | f16Mant) + 1);
-                return (ushort)(f16Sign | f16Bexp | f16Mant);
-            }
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static ushort SingleBitsToHalf(uint storage) => (ushort)(s_baseTable[(storage >> 23) & 0x01FF] + ((storage & 0x007F_FFFF) >> s_shiftTable[(storage >> 23) & 0x01FF]));
 
         #region String parse
         /*
