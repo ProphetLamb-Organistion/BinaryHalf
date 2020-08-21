@@ -25,7 +25,7 @@ namespace System
         #region IComparable members
         public int CompareTo(object obj)
         {
-            if (obj is Half f16) 
+            if (obj is Half f16)
                 return CompareTo(f16);
             if (obj is float f32)
                 return CompareTo(f32);

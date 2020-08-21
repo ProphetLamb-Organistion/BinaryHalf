@@ -19,6 +19,8 @@ namespace System
                              LARGEST_POS_SUB = 0x03ff,
                              LARGEST_LESS_ONE = 0x3bff,
                              SMALLEST_MORE_ONE = 0x3C01,
+                             ONE = 0x3C00,
+                             NEG_ONE = 0xBC00,
                              HALF = 0x0600,
                              THIRD = 0x3555,
                              EPSILON = 0x3C00, // ONE - SMALLEST_MORE_ONE
@@ -52,6 +54,8 @@ namespace System
                                     LargestLessThenOne = new Half(LARGEST_LESS_ONE),
                                     SmallestLargerThenOne = new Half(SMALLEST_MORE_ONE),
                                     // Numeric values
+                                    One = new Half(ONE),
+                                    NegOne = new Half(NEG_ONE),
                                     OneHalf = new Half(HALF),
                                     Thrid = new Half(THIRD),
                                     Epsilon = new Half(EPSILON),
@@ -73,8 +77,8 @@ namespace System
         internal const float EpsilonS = 0.0009765625f;
         internal const double EpsilonD = 0.0009765625;
 
-        public const int MaximumBase10Exponent = 38,
-                         MinimumBase10Exponent = -37,
-                         SignificantBase10Digits = 2;
+        public const int MAX_BASE10_EXPONENT = 38,
+                         MIN_BASE10_EXPONENT = -37,
+                         AVG_SIGNIFICANT_BASE10_DIGITS = 2;
     }
 }

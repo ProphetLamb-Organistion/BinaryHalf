@@ -14,34 +14,30 @@ namespace System
         public static Half Min(in Half value1, in Half value2) => value1.CompareTo(value2) == -1 ? value2 : value1;
 
         /*
-         * http://pages.cs.wisc.edu/~markhill/cs354/Fall2008/notes/flpt.apprec.html
-         * 
-         *    1.XXXXXXXXXXXXXXXXXXXXXXX   0   0   0
-         *
-         *    ^         ^                 ^   ^   ^
-         *    |         |                 |   |   |
-         *    |         |                 |   |   -  sticky bit (s)
-         *    |         |                 |   -  round bit (r)
-         *    |         |                 -  guard bit (g)
-         *    |         -  23 bit mantissa from a representation
-         *    -  hidden bit
+         * Ceiling, floor and round should use System.MathF implementations, sice they would require to add or subtract one form the Half
+         * which would cast to a float anyways.
          */
         public static Half Truncate(in Half value)
         {
-        }
-
-        public static Half Ceil(in Half value)
-        {
-
-        }
-
-        public static Half Floor(in Half value)
-        {
-
-        }
-
-        public static Half Round(in Half value)
-        {
+            int unbiasedExponent = GetBase2Exponent(value);
+            // Preserves subnormal: NaN, pos and neg infinity.
+            if (unbiasedExponent == MAX_BASE2_EXPONENT_VALUE)
+                return value;
+            // Decimal values smaller then one, round to zero
+            if (unbiasedExponent < -1)
+                return Zero;
+            if (unbiasedExponent == -1)
+                return IsNegative(value) ? NegOne : One;
+            // Values greater or equal to 2048, cannot contain decimal digits in base 10.
+            // log_2(2048) = 11
+            if (unbiasedExponent >= 11)
+                return value;
+            return new Half((ushort)(
+                // Copy but the mantissa
+                (value._storage & ~MANTISSA_MASK) |
+                // Erase significant decimal digit and lower from mantissa:
+                // Mask storage with mantissa bits to keep.
+                (value._storage & (MANTISSA_MASK & ~(0xFFFF << (11 - unbiasedExponent))))));
         }
     }
 }

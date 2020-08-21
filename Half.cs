@@ -16,6 +16,7 @@ namespace System
 
         private Half(ushort binaryData) => _storage = binaryData;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Half FromBits(ushort littleEdian)
         {
             return new Half(littleEdian);
@@ -26,6 +27,12 @@ namespace System
             byte[] bytes = BitConverter.GetBytes(bigEdian);
             Array.Reverse(bytes);
             return new Half(BitConverter.ToUInt16(bytes));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half SignalingNan(byte payload)
+        {
+            return new Half((ushort)(SIGNALING_NAN | payload));
         }
 
         #region Static members
@@ -88,13 +95,10 @@ namespace System
 
         // Payload mask is 0x00FF - the 2nd byte of the _storage. It can be obtained by left shifting 8 bits.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static byte GetSignalingNaNPayload(in Half value)
-        {
-            unchecked
-            {
-                return (byte)(value._storage << 8);
-            }
-        }
+        public static byte GetSignalingNaNPayload(in Half value) => (byte)(value._storage << 8);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int GetBase2Exponent(in Half value) => ((value._storage & BIASED_EXPONENT_MASK) >> 10) - EXPONENT_BIAS;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ushort GetBits() => _storage;
