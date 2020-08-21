@@ -13,7 +13,14 @@ namespace System
 
         public bool Equals(float other) => other.Equals(this);
 
-        public bool Equals(Half other) => IsNaN(this) && IsNaN(other) || _storage == other._storage;
+        public bool Equals(Half other)
+        {
+            if (IsNaN(this) && IsNaN(other))
+                return true;
+            if (IsZero(this) && IsZero(other))
+                return true;
+            return _storage == other._storage;
+        }
 
         public bool EpsilonEquals(float other) => (this - other) <= EpsilonS;
 
