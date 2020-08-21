@@ -30,7 +30,7 @@ namespace System
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half SignalingNan(byte payload)
+        public static Half CreateSignalingNan(byte payload)
         {
             return new Half((ushort)(SIGNALING_NAN | payload));
         }
@@ -51,14 +51,7 @@ namespace System
         /// otherise, 0.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetSign(in Half value)
-        {
-            if (IsNaN(value))
-                return 0;
-            if ((value._storage & SIGN_MASK) != 0)
-                return -1;
-            return 1;
-        }
+        public static int GetSign(in Half value) => IsNaN(value) ? 0 : (value._storage & SIGN_MASK) != 0 ? -1 : 1;
 
         // Biased Exponent is zero and significant bit is set.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
