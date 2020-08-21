@@ -33,9 +33,9 @@ namespace System
          * which would cast to a float anyways.
          */
         /// <summary>
-        /// Returns the 
+        /// Rounds the value towards zero.
         /// </summary>
-        /// <remarks></remarks>
+        /// <remarks>IEEE 754-2019 complicant implementation of "sourceFormat roundToIntegralTowardZero(source)".<remarks>
         public static Half Truncate(in Half value)
         {
             int unbiasedExponent = GetBase2Exponent(value);
