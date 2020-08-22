@@ -14,13 +14,12 @@ namespace System
         [FieldOffset(0)]
         private readonly ushort _storage;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Half(ushort binaryData) => _storage = binaryData;
 
+        #region Constructors
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half FromBits(ushort littleEdian)
-        {
-            return new Half(littleEdian);
-        }
+        public static Half FromBits(ushort littleEdian) => new Half(littleEdian);
 
         public static Half FromBigEdianBits(ushort bigEdian)
         {
@@ -30,10 +29,19 @@ namespace System
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half CreateSignalingNan(byte payload)
-        {
-            return new Half((ushort)(SIGNALING_NAN | payload));
-        }
+        public static Half CreateSignalingNan(byte payload) => new Half((ushort)(SIGNALING_NAN | payload));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half CreateQuiteNaN(byte payload) => new Half((ushort)(QUITE_NAN | payload));
+
+        /// <summary>
+        /// Converts a 32bit integer to a 16bit binary floating point value.
+        /// </summary>
+        /// <remarks>IEEE 754-2019 comform implementation of "formatOf convertFromInt(int)".</remarks>
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half FromInt(int value) => value;
+        #endregion
 
         #region Static members
         public enum NumericClass
@@ -59,7 +67,7 @@ namespace System
         /// <summary>
         /// Returns the numeric class of the value.
         /// </summary>
-        /// <remarks>IEEE 754-2019 complicant implementation of "enum class(source)".</remarks>
+        /// <remarks>IEEE 754-2019 comform implementation of "enum class(source)".</remarks>
         public static NumericClass GetClass(in Half value)
         {
             if (IsNaN(value))
@@ -93,7 +101,7 @@ namespace System
         /// <summary>
         /// Returns whether the value of negative.
         /// </summary>
-        /// <remarks>IEEE 754-2019 complicant implementation of "boolean isSignMinus(source)".</remarks>
+        /// <remarks>IEEE 754-2019 comform implementation of "boolean isSignMinus(source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsNegative(in Half value) => (value._storage & SIGN_MASK) == SIGN_MASK;
 
@@ -117,7 +125,7 @@ namespace System
         /// <summary>
         /// Returns whether the value is subnormal.
         /// </summary>
-        /// <remarks>IEEE 754-2019 complicant implementation of "boolean isSubnormal(source)".</remarks>
+        /// <remarks>IEEE 754-2019 comform implementation of "boolean isSubnormal(source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         // Biased Exponent is zero and significant bit is set.
         public static bool IsSubnormal(in Half value) => (value._storage & BIASED_OR_SIGNIFICANT_MASK) == SIGNIFICANT_BIT_FLAG;
@@ -125,7 +133,7 @@ namespace System
         /// <summary>
         /// Returns whether the value is normal (not zero, subnormal, infinite, or NaN).
         /// </summary>
-        /// <remarks>IEEE 754-2019 complicant implementation of "boolean isNormal(source)".</remarks>
+        /// <remarks>IEEE 754-2019 comform implementation of "boolean isNormal(source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsNormal(in Half value)
         {
@@ -136,17 +144,14 @@ namespace System
         /// <summary>
         /// Returns whether the value is zero, subnormal or normal (not infinite or NaN).
         /// </summary>
-        /// <remarks>IEEE 754-2019 complicant implementation of "boolean isFinite(source)".</remarks>
+        /// <remarks>IEEE 754-2019 comform implementation of "boolean isFinite(source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsFinite(in Half value)
-        {
-            return IsNormal(value) || (IsSubnormal(value) && !IsNaN(value) && !IsInfinity(value));
-        }
+        public static bool IsFinite(in Half value) => IsNormal(value) || IsSubnormal(value) && !IsNaN(value) && !IsInfinity(value);
 
         /// <summary>
         /// Returns whether the value is negative or positve zero.
         /// </summary>
-        /// <remarks>IEEE 754-2019 complicant implementation of "boolean isZero(source)".</remarks>
+        /// <remarks>IEEE 754-2019 comform implementation of "boolean isZero(source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         // Biased Exponent is zero and significant bit is unset.
         public static bool IsZero(in Half value) => (value._storage & BIASED_OR_SIGNIFICANT_MASK) == 0;
@@ -154,7 +159,7 @@ namespace System
         /// <summary>
         /// Returns whether the value is positive or negative infinity.
         /// </summary>
-        /// <remarks>IEEE 754-2019 complicant implementation of "boolean isInfinity(source)".</remarks>
+        /// <remarks>IEEE 754-2019 comform implementation of "boolean isInfinity(source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         // Biased Exponent is max and NAN_FLAG is not set.
         public static bool IsInfinity(in Half value) => (value._storage & BIASED_OR_SIGNIFICANT_MASK) == BIASED_EXPONENT_MASK;
@@ -174,7 +179,7 @@ namespace System
         /// <summary>
         /// Returns whether the value is quite or signaling NaN.
         /// </summary>
-        /// <remarks>IEEE 754-2019 complicant implementation of "boolean isNaN(source)".</remarks>
+        /// <remarks>IEEE 754-2019 comform implementation of "boolean isNaN(source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         // Biased Exponent is max and NAN_FLAG is set.
         public static bool IsNaN(in Half value) => (value._storage & (BIASED_EXPONENT_MASK | SIGNIFICANT_BIT_FLAG)) == (BIASED_EXPONENT_MASK | SIGNIFICANT_BIT_FLAG);
@@ -182,7 +187,7 @@ namespace System
         /// <summary>
         /// Returns whether the NaN value is signaling.
         /// </summary>
-        /// <remarks>IEEE 754-2019 complicant implementation of "boolean isSignaling(source)".</remarks>
+        /// <remarks>IEEE 754-2019 comform implementation of "boolean isSignaling(source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         // Signaling nan flag bit - 2nd mantissa bit - is set.
         public static bool IsSignaling(in Half value) => (value._storage & SIGNALING_NAN_FLAG) != 0;
@@ -200,27 +205,26 @@ namespace System
         /// <summary>
         /// Returns the radix mode (2) of <see cref="Half"/>.
         /// </summary>
-        /// <remarks>IEEE 754-2019 complicant implementation of "enum radix(source)".</remarks>
+        /// <remarks>IEEE 754-2019 comform implementation of "enum radix(source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static RadixMode GetRadix(in Half value) => RadixMode.Two;
 
         /// <summary>
         /// Returns the toral order of x relative to y.
         /// </summary>
-        /// <remarks>IEEE 754-2019 complicant implementation of "boolean totalOrder(source, source)".</remarks>
+        /// <remarks>IEEE 754-2019 comform implementation of "boolean totalOrder(source, source)".</remarks>
         public static bool GetTotalOrder(in Half x, in Half y)
         {
             if (IsNaN(x) && IsNaN(y))
                 return IsPositive(x) && IsNegative(y);
-            if (IsNaN(x) || IsNaN(y))
-            {
-                if (IsNaN(x))
-                    return IsNegative(x);
-                if (IsNaN(y))
-                    return IsPositive(y);
-            }
-            if (x.CompareTo(y) < 0) return true;
-            if (x.CompareTo(y) > 0) return true;
+            if (IsNaN(x))
+                return IsNegative(x);
+            if (IsNaN(y))
+                return IsPositive(y);
+            if (x.CompareTo(y) < 0)
+                return true;
+            if (x.CompareTo(y) > 0)
+                return true;
             if (x == NegZero && y == Zero)
                 return true;
             if (x == Zero && y == NegZero)
@@ -234,7 +238,7 @@ namespace System
         /// <summary>
         /// Returns the toral order of abs(x) relative to abs(y).
         /// </summary>
-        /// <remarks>IEEE 754-2019 complicant implementation of "boolean totalOrderMag(source, source)".</remarks>
+        /// <remarks>IEEE 754-2019 comform implementation of "boolean totalOrderMag(source, source)".</remarks>
         public static bool GetTotalOrderMag(in Half x, in Half y) => GetTotalOrder(Abs(x), Abs(y));
 
         /// <summary>
@@ -244,10 +248,7 @@ namespace System
         /// If sign is 0, then true if the value is posivie or negative infinity.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsInfinite(in Half value, int sign)
-        {
-            return IsInfinity(value) && (sign > 0 ? !IsNegative(value) : (sign <= 0 || IsNegative(value)));
-        }
+        public static bool IsInfinite(in Half value, int sign) => IsInfinity(value) && (sign > 0 ? !IsNegative(value) : (sign <= 0 || IsNegative(value)));
         #endregion
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -24,6 +24,8 @@ namespace System
          */
         private static readonly uint* s_mantissaTable, s_exponentTable;
         private static readonly ushort* s_offsetTable, s_baseTable, s_shiftTable;
+        private static readonly float* s_logTable;
+
         static Half()
         {
             // Initialize mantissa table.
@@ -33,6 +35,7 @@ namespace System
                 s_mantissaTable[i] = ConvertMantissa(i);
             for (uint i = 1024; i != 2048; i++)
                 s_mantissaTable[i] = 0x3800_0000 + ((i - 0x80) << 13);
+
             // Initialize exponent table
             s_exponentTable = (uint*)Marshal.AllocHGlobal(sizeof(int) * 64);
             s_exponentTable[0] = 0;
@@ -43,12 +46,14 @@ namespace System
             for (uint i = 33; i != 63; i++)
                 s_exponentTable[i] = 0x8000_0000 + ((i - 0x20) << 13);
             s_exponentTable[63] = 0xC780_0000;
+
             // Initialize offset table
             s_offsetTable = (ushort*)Marshal.AllocHGlobal(sizeof(short) * 64);
             s_offsetTable[0] = 0;
             for (uint i = 1; i != 32; i++)
                 s_offsetTable[i] = 1024;
             s_offsetTable[32] = 0;
+
             // Initialize base & shift table
             s_baseTable = (ushort*)Marshal.AllocHGlobal(sizeof(short) * 256);
             s_shiftTable = (ushort*)Marshal.AllocHGlobal(sizeof(short) * 512);
@@ -95,6 +100,20 @@ namespace System
                     s_shiftTable[i | 0x000] = 13;
                     s_shiftTable[i | 0x100] = 13;
                 }
+            }
+
+            // Initialize Log table
+            // Ported from C to C# source http://freshmeat.sourceforge.net/projects/icsilog
+            // We use a float table to save a cast, when multiplying the Half with log2_4 during rt.
+            // 0x400 = 1 << 10. for 10 mantissa bits
+            s_logTable = (float*)Marshal.AllocHGlobal(sizeof(float) * 0x400);
+            const float reci_log2_4 = 1 / 0.69314718055995f;
+            const float reci_precision = 1 / 0x400f;
+            float oneToTwo = 1 + (1 / 0x400f);
+            for (int i = 0; i != 0x400; i++)
+            {
+                s_logTable[i] = MathF.Log(oneToTwo) * reci_log2_4;
+                oneToTwo += reci_precision;
             }
         }
 

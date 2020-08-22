@@ -1,18 +1,25 @@
 using System;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace System
 {
     public readonly partial struct Half
     {
         #region IEquatable members
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object? obj) => obj is Half half && Equals(half);
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode() => _storage;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(float other) => other.Equals(this);
 
+        /// <summary>
+        /// Indicates whether the current object is equal to another object of the same type.
+        /// </summary>
+        /// <remarks>IEEE 754-2019 comform implementation of "boolean compareQuiteEqual(source, source)".</remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(Half other)
         {
             if (IsNaN(this) && IsNaN(other))
@@ -30,6 +37,7 @@ namespace System
         #endregion
 
         #region IComparable members
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int CompareTo(object obj)
         {
             if (obj is Half f16)
@@ -70,6 +78,7 @@ namespace System
             return (_storage & MANTISSA_MASK).CompareTo(other._storage & MANTISSA_MASK);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int CompareTo(float other)
         {
             // Not a number cannot be compared to a number; ignore NaN payload.
@@ -86,6 +95,7 @@ namespace System
             return ((float)this).CompareTo(other);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int CompareTo(double other)
         {
             // Not a number cannot be compared to a number; ignore NaN payload.
