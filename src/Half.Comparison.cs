@@ -14,9 +14,6 @@ namespace System
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode() => _storage;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(double other) => Equals((Half)other);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -43,6 +40,11 @@ namespace System
             return _storage == other._storage;
         }
 
+        /// <summary>
+        /// Indicates whether the current object is equal, or widthin margin of error to another object.
+        /// </summary>
+        /// <param name="other"></param>
+        /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool EpsilonEquals(double other) => Equals(other) || Math.Abs(this - other) <= EpsilonD;
 
@@ -57,13 +59,13 @@ namespace System
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int CompareTo(object obj)
         {
-            if (obj is Half f16)
-                return CompareTo(f16);
-            if (obj is float f32)
-                return CompareTo(f32);
-            if (obj is double f64)
-                return CompareTo(f64);
-            throw new ArgumentException("Object must be a Half, Single, or Double.");
+            return obj switch
+            {
+                Half f16 => CompareTo(f16),
+                float f32 => CompareTo(f32),
+                double f64 => CompareTo(f64),
+                _ => throw new ArgumentException("Object must be a Half, Single, or Double.")
+            };
         }
 
         public int CompareTo(Half other)
@@ -95,7 +97,6 @@ namespace System
             return (_storage & c_mantissaMask).CompareTo(other._storage & c_mantissaMask);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int CompareTo(float other)
         {
             // Not a number cannot be compared to a number; ignore NaN payload.
@@ -109,10 +110,9 @@ namespace System
                     return -1;
                 // Convert subnormal values to Single
             }
-            return ((float)this).CompareTo(other);
+            return CompareTo((Half)other);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int CompareTo(double other)
         {
             // Not a number cannot be compared to a number; ignore NaN payload.
@@ -126,7 +126,7 @@ namespace System
                     return -1;
                 // Convert subnormal values to Double
             }
-            return ((double)this).CompareTo(other);
+            return CompareTo((Half)other);
         }
         #endregion
     }

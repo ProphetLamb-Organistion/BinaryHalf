@@ -12,7 +12,7 @@ namespace System
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator Half(in float value)
+        public static explicit operator Half(in float value)
         {
             return FloatToHalf(value);
         }

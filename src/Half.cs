@@ -102,7 +102,7 @@ namespace System
         }
 
         /// <summary>
-        /// Indicates whether the value is negative.
+        /// Indicates whether the sign bit is set and the value is negative.
         /// </summary>
         /// <remarks>IEEE 754-2019 comform implementation of "boolean isSignMinus(source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -143,7 +143,7 @@ namespace System
         /// </summary>
         /// <remarks>IEEE 754-2019 comform implementation of "boolean isFinite(source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsFinite(in Half value) => IsNormal(value) || IsSubnormal(value) && !IsNaN(value) && !IsInfinity(value);
+        public static bool IsFinite(in Half value) => (value._storage & c_biasedExponentMask) != c_biasedExponentMask;
 
         /// <summary>
         /// Indicates whether the value is negative or positve zero.
@@ -200,7 +200,7 @@ namespace System
         private static int GetBase2Exponent(in Half value) => ((value._storage & c_biasedExponentMask) >> 10) - c_exponentMask;
 
         /// <summary>
-        /// Returns the radix mode (2) of <see cref="Half"/>.
+        /// Returns the radix mode of <see cref="Half"/>. The enum value returned is equivalent to 0x02
         /// </summary>
         /// <remarks>IEEE 754-2019 comform implementation of "enum radix(source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -250,9 +250,15 @@ namespace System
 
         public string GetDebuggerDisplay() => String.Format("[Value = {0} Sign = {1}, BinExp = {2}, Mant = {3}]", ((float)this).ToString(), IsSigned(this) ? 1 : 0, GetBase2Exponent(this), (_storage & c_mantissaMask));
 
+        /// <summary>
+        /// Represents the storage bits of the <see cref="Half"/>.
+        /// </summary>
+        /// <returns></returns>
         public ushort GetBits() => _storage;
 
         public override string ToString() => ((float)this).ToString();
+
+        public override int GetHashCode() => _storage;
 
         public string ToString(string format, IFormatProvider formatProvider) => ((float)this).ToString(format, formatProvider);
     }
