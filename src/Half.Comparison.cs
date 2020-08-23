@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.CompilerServices;
 
 namespace System
@@ -7,33 +6,51 @@ namespace System
     {
         #region IEquatable members
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override bool Equals(object? obj) => obj is Half half && Equals(half);
+        public override bool Equals(object? obj)
+        {
+            return obj is Half h && Equals(h)
+                || obj is float f && Equals(f)
+                || obj is double d && Equals(d);
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode() => _storage;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(float other) => other.Equals(this);
+        public bool Equals(double other) => Equals((Half)other);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Equals(float other) => Equals((Half)other);
 
         /// <summary>
         /// Indicates whether the current object is equal to another object of the same type.
         /// </summary>
         /// <remarks>IEEE 754-2019 comform implementation of "boolean compareQuiteEqual(source, source)".</remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(Half other)
         {
-            if (IsNaN(this) && IsNaN(other))
-                return true;
-            if (IsZero(this) && IsZero(other))
-                return true;
+            if (IsSubnormal(this) || IsSubnormal(other))
+            {
+                // Both are NaN; ignore signaling and payload
+                if ((_storage & other._storage & c_quiteNaN) == c_quiteNaN)
+                    return true;
+                // Both are Zero; ignore sign
+                if (IsZero(this) && IsZero(other))
+                    return true;
+                // Infinity of the same sign
+                if (IsInfinity(this) && IsInfinity(other))
+                    return IsSigned(this) == IsSigned(other);
+            }
             return _storage == other._storage;
         }
 
-        public bool EpsilonEquals(float other) => (this - other) <= EpsilonS;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool EpsilonEquals(double other) => Equals(other) || Math.Abs(this - other) <= EpsilonD;
 
-        public bool EpsilonEquals(Half other) => (this - other) <= EpsilonS;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool EpsilonEquals(float other) => Equals(other) || MathF.Abs(this - other) <= EpsilonS;
 
-        public bool Equals(double other) => (this - other) <= EpsilonD;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool EpsilonEquals(Half other) => Equals(other) || MathF.Abs(this - other) <= EpsilonS;
         #endregion
 
         #region IComparable members
@@ -66,16 +83,16 @@ namespace System
                 return 0;
             }
             // Compare sign
-            if (IsNegative(this) != IsNegative(other))
-                return IsNegative(this) ? -1 : 1;
+            if (IsSigned(this) != IsSigned(other))
+                return IsSigned(this) ? -1 : 1;
             // Compare exponent
-            int expDelta = (_storage & BIASED_EXPONENT_MASK) - (other._storage & BIASED_EXPONENT_MASK);
+            int expDelta = (_storage & c_biasedExponentMask) - (other._storage & c_biasedExponentMask);
             if (expDelta < 0)
                 return -1;
             if (expDelta > 0)
                 return 1;
             // Compare mantissa
-            return (_storage & MANTISSA_MASK).CompareTo(other._storage & MANTISSA_MASK);
+            return (_storage & c_mantissaMask).CompareTo(other._storage & c_mantissaMask);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

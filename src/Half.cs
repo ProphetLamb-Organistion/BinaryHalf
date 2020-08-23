@@ -1,11 +1,14 @@
-﻿using System;
+﻿using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace System
 {
     [Serializable]
     [StructLayout(LayoutKind.Explicit, Size = 2)]
+    [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public readonly partial struct Half :
         IComparable, IConvertible, IFormattable,
         IComparable<Half>, IComparable<float>, IComparable<double>,
@@ -29,10 +32,10 @@ namespace System
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half CreateSignalingNan(byte payload) => new Half((ushort)(SIGNALING_NAN | payload));
+        public static Half CreateSignalingNan(byte payload) => new Half((ushort)(c_signalingNan | payload));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half CreateQuiteNaN(byte payload) => new Half((ushort)(QUITE_NAN | payload));
+        public static Half CreateQuiteNaN(byte payload) => new Half((ushort)(c_quiteNaN | payload));
 
         /// <summary>
         /// Converts a 32bit integer to a 16bit binary floating point value.
@@ -60,7 +63,7 @@ namespace System
 
         public enum RadixMode : byte
         {
-            Two =  2,
+            Two = 2,
             Ten = 10
         }
 
@@ -76,7 +79,7 @@ namespace System
                     return NumericClass.SignalingNaN;
                 return NumericClass.QuiteNaN;
             }
-            if (IsPositive(value))
+            if (!IsSigned(value))
             {
                 if (IsInfinity(value))
                     return NumericClass.PositiveInfinity;
@@ -99,17 +102,11 @@ namespace System
         }
 
         /// <summary>
-        /// Returns whether the value of negative.
+        /// Indicates whether the value is negative.
         /// </summary>
         /// <remarks>IEEE 754-2019 comform implementation of "boolean isSignMinus(source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsNegative(in Half value) => (value._storage & SIGN_MASK) == SIGN_MASK;
-
-        /// <summary>
-        /// Returns whether the value of positive.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsPositive(in Half value) => (value._storage & SIGN_MASK) == 0;
+        public static bool IsSigned(in Half value) => (value._storage & c_signMask) == c_signMask;
 
         /// <summary>
         /// Return a 32-bit signed integer indicating the sign of the <see cref="Half"/>.
@@ -120,77 +117,77 @@ namespace System
         /// otherise, 0.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetSign(in Half value) => IsNaN(value) ? 0 : (value._storage & SIGN_MASK) != 0 ? -1 : 1;
+        public static int GetSign(in Half value) => IsNaN(value) ? 0 : (value._storage & c_signMask) != 0 ? -1 : 1;
 
         /// <summary>
-        /// Returns whether the value is subnormal.
+        /// Indicates whether the value is subnormal.
         /// </summary>
         /// <remarks>IEEE 754-2019 comform implementation of "boolean isSubnormal(source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        // Biased Exponent is zero and significant bit is set.
-        public static bool IsSubnormal(in Half value) => (value._storage & BIASED_OR_SIGNIFICANT_MASK) == SIGNIFICANT_BIT_FLAG;
+        // Biased Exponent is zero or max
+        public static bool IsSubnormal(in Half value) => (value._storage & c_biasedExponentMask) == c_biasedExponentMask || (value._storage & c_biasedExponentMask) == 0;
 
         /// <summary>
-        /// Returns whether the value is normal (not zero, subnormal, infinite, or NaN).
+        /// Indicates whether the value is normal (not zero, subnormal, infinite, or NaN).
         /// </summary>
         /// <remarks>IEEE 754-2019 comform implementation of "boolean isNormal(source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsNormal(in Half value)
         {
-            ushort biasedExp = (ushort)(value._storage & BIASED_EXPONENT_MASK);
-            return biasedExp != 0 && biasedExp != BIASED_EXPONENT_MASK;
+            ushort biasedExp = (ushort)(value._storage & c_biasedExponentMask);
+            return biasedExp != 0 && biasedExp != c_biasedExponentMask;
         }
 
         /// <summary>
-        /// Returns whether the value is zero, subnormal or normal (not infinite or NaN).
+        /// Indicates whether the value is zero, subnormal or normal (not infinite or NaN).
         /// </summary>
         /// <remarks>IEEE 754-2019 comform implementation of "boolean isFinite(source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsFinite(in Half value) => IsNormal(value) || IsSubnormal(value) && !IsNaN(value) && !IsInfinity(value);
 
         /// <summary>
-        /// Returns whether the value is negative or positve zero.
+        /// Indicates whether the value is negative or positve zero.
         /// </summary>
         /// <remarks>IEEE 754-2019 comform implementation of "boolean isZero(source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         // Biased Exponent is zero and significant bit is unset.
-        public static bool IsZero(in Half value) => (value._storage & BIASED_OR_SIGNIFICANT_MASK) == 0;
+        public static bool IsZero(in Half value) => (value._storage & (c_biasedExponentMask | c_mantissaMask)) == 0;
 
         /// <summary>
-        /// Returns whether the value is positive or negative infinity.
+        /// Indicates whether the value is positive or negative infinity.
         /// </summary>
         /// <remarks>IEEE 754-2019 comform implementation of "boolean isInfinity(source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         // Biased Exponent is max and NAN_FLAG is not set.
-        public static bool IsInfinity(in Half value) => (value._storage & BIASED_OR_SIGNIFICANT_MASK) == BIASED_EXPONENT_MASK;
+        public static bool IsInfinity(in Half value) => (value._storage & c_biasedOrSignificantMask) == c_biasedExponentMask;
 
         /// <summary>
-        /// Returns whether the value is positive infinity.
+        /// Indicates whether the value is positive infinity.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsPositiveInfinity(in Half value) => (value._storage & BIASED_OR_SIGNIFICANT_MASK) == BIASED_OR_SIGNIFICANT_MASK && (value._storage & SIGN_MASK) == 0;
+        public static bool IsPositiveInfinity(in Half value) => (value._storage & c_biasedOrSignificantMask) == c_biasedOrSignificantMask && (value._storage & c_signMask) == 0;
 
         /// <summary>
-        /// Returns whether the value is negative infinity.
+        /// Indicates whether the value is negative infinity.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsNegativeInfinity(in Half value) => (value._storage & NEG_INF) == NEG_INF;
+        public static bool IsNegativeInfinity(in Half value) => (value._storage & c_negInf) == c_negInf;
 
         /// <summary>
-        /// Returns whether the value is quite or signaling NaN.
+        /// Indicates whether the value is quite or signaling NaN.
         /// </summary>
         /// <remarks>IEEE 754-2019 comform implementation of "boolean isNaN(source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         // Biased Exponent is max and NAN_FLAG is set.
-        public static bool IsNaN(in Half value) => (value._storage & (BIASED_EXPONENT_MASK | SIGNIFICANT_BIT_FLAG)) == (BIASED_EXPONENT_MASK | SIGNIFICANT_BIT_FLAG);
+        public static bool IsNaN(in Half value) => (value._storage & (c_biasedExponentMask | c_significantBitFlag)) == (c_biasedExponentMask | c_significantBitFlag);
 
         /// <summary>
-        /// Returns whether the NaN value is signaling.
+        /// Indicates whether the NaN value is signaling.
         /// </summary>
         /// <remarks>IEEE 754-2019 comform implementation of "boolean isSignaling(source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         // Signaling nan flag bit - 2nd mantissa bit - is set.
-        public static bool IsSignaling(in Half value) => (value._storage & SIGNALING_NAN_FLAG) != 0;
+        public static bool IsSignaling(in Half value) => (value._storage & c_signalingNanFlag) != 0;
 
         /// <summary>
         /// Returns the payload of a signaling NaN.
@@ -200,7 +197,7 @@ namespace System
         public static byte GetSignalingNaNPayload(in Half value) => (byte)(value._storage << 8);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int GetBase2Exponent(in Half value) => ((value._storage & BIASED_EXPONENT_MASK) >> 10) - EXPONENT_BIAS;
+        private static int GetBase2Exponent(in Half value) => ((value._storage & c_biasedExponentMask) >> 10) - c_exponentMask;
 
         /// <summary>
         /// Returns the radix mode (2) of <see cref="Half"/>.
@@ -216,11 +213,11 @@ namespace System
         public static bool GetTotalOrder(in Half x, in Half y)
         {
             if (IsNaN(x) && IsNaN(y))
-                return IsPositive(x) && IsNegative(y);
+                return !IsSigned(x) && IsSigned(y);
             if (IsNaN(x))
-                return IsNegative(x);
+                return IsSigned(x);
             if (IsNaN(y))
-                return IsPositive(y);
+                return !IsSigned(y);
             if (x.CompareTo(y) < 0)
                 return true;
             if (x.CompareTo(y) > 0)
@@ -229,7 +226,7 @@ namespace System
                 return true;
             if (x == Zero && y == NegZero)
                 return false;
-            if (IsNegative(x) || IsNegative(y))
+            if (IsSigned(x) || IsSigned(y))
                 return GetBase2Exponent(x) >= GetBase2Exponent(y);
             else
                 return GetBase2Exponent(x) <= GetBase2Exponent(y);
@@ -242,19 +239,21 @@ namespace System
         public static bool GetTotalOrderMag(in Half x, in Half y) => GetTotalOrder(Abs(x), Abs(y));
 
         /// <summary>
-        /// Returns whether the 16bit floating point number is infinite.
+        /// Indicates whether the 16bit floating point number is infinite.
         /// If sign is negative, then true if the value is negative infinity.
         /// If sign is positive, then true if the value is positive infinity.
         /// If sign is 0, then true if the value is posivie or negative infinity.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsInfinite(in Half value, int sign) => IsInfinity(value) && (sign > 0 ? !IsNegative(value) : (sign <= 0 || IsNegative(value)));
+        public static bool IsInfinite(in Half value, int sign) => IsInfinity(value) && (sign > 0 ? !IsSigned(value) : (sign <= 0 || IsSigned(value)));
         #endregion
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public string GetDebuggerDisplay() => String.Format("[Value = {0} Sign = {1}, BinExp = {2}, Mant = {3}]", ((float)this).ToString(), IsSigned(this) ? 1 : 0, GetBase2Exponent(this), (_storage & c_mantissaMask));
+
         public ushort GetBits() => _storage;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override string ToString() => ((float)this).ToString();
+
         public string ToString(string format, IFormatProvider formatProvider) => ((float)this).ToString(format, formatProvider);
     }
 }

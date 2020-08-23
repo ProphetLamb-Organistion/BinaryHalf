@@ -1,14 +1,11 @@
-﻿using System.Diagnostics;
-using System;
-using System.Runtime.CompilerServices;
-using System.Dynamic;
+﻿using System.Runtime.CompilerServices;
 
 namespace System
 {
     public readonly partial struct Half
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half Negate(in Half value) => FromBits((ushort)(value._storage ^ SIGN_MASK));
+        public static Half Negate(in Half value) => FromBits((ushort)(value._storage ^ c_signMask));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Half Abs(in Half value) => FromBits((ushort)(value._storage & 0x7FFF));
@@ -30,7 +27,7 @@ namespace System
         /// </summary>
         /// <remarks>IEEE 754-2019 comform implementation of "sourceFormat copySign(source, source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half CopySign(Half x, Half y) => new Half((ushort)((y._storage & SIGN_MASK) | (x._storage & (BIASED_EXPONENT_MASK | MANTISSA_MASK))));
+        public static Half CopySign(Half x, Half y) => new Half((ushort)((y._storage & c_signMask) | (x._storage & (c_biasedExponentMask | c_mantissaMask))));
 
         /// <summary>
         /// Rounds the value towards zero.
@@ -40,23 +37,23 @@ namespace System
         {
             int unbiasedExponent = GetBase2Exponent(value);
             // Preserves subnormal: NaN, pos and neg infinity.
-            if (unbiasedExponent == MAX_BASE2_EXPONENT_VALUE)
+            if (unbiasedExponent == c_maxBase2ExponentValue)
                 return value;
             // Decimal values smaller then one, round to zero
             if (unbiasedExponent < -1)
                 return Zero;
             if (unbiasedExponent == -1)
-                return IsNegative(value) ? NegOne : One;
+                return IsSigned(value) ? NegOne : One;
             // Values greater or equal to 2048, cannot contain decimal digits in base 10.
             // log_2(2048) = 11
             if (unbiasedExponent >= 11)
                 return value;
             return new Half((ushort)(
                 // Copy but the mantissa
-                (value._storage & ~MANTISSA_MASK) |
+                (value._storage & ~c_mantissaMask) |
                 // Erase significant decimal digit and lower from mantissa:
                 // Mask storage with mantissa bits to keep.
-                (value._storage & (MANTISSA_MASK & ~(0xFFFF << (11 - unbiasedExponent))))));
+                (value._storage & (c_mantissaMask & ~(0xFFFF << (11 - unbiasedExponent))))));
         }
 
         /// <summary>
@@ -122,18 +119,18 @@ namespace System
                 return value;
             if (IsZero(value) || IsSubnormal(value))
                 return SmallestPosNormal;
-            ushort mant = (ushort)((value._storage & MANTISSA_MASK) + 1);
+            ushort mant = (ushort)((value._storage & c_mantissaMask) + 1);
             // Mantissa is at max.
-            if (mant >= MANTISSA_MASK)
+            if (mant >= c_mantissaMask)
             {
                 // Increment exponent.
-                ushort bexp = (ushort)((value._storage & BIASED_EXPONENT_MASK) + (1 << 10));
+                ushort bexp = (ushort)((value._storage & c_biasedExponentMask) + (1 << 10));
                 // Exponent is at max.
-                if (bexp >= BIASED_EXPONENT_MASK)
-                    return IsNegative(value) ? NegInfinity : Infinity;
-                return new Half((ushort)((value._storage & ~BIASED_EXPONENT_MASK) | (bexp & BIASED_EXPONENT_MASK)));
+                if (bexp >= c_biasedExponentMask)
+                    return IsSigned(value) ? NegInfinity : Infinity;
+                return new Half((ushort)((value._storage & ~c_biasedExponentMask) | (bexp & c_biasedExponentMask)));
             }
-            return new Half((ushort)((value._storage & ~MANTISSA_MASK) | (mant & MANTISSA_MASK)));
+            return new Half((ushort)((value._storage & ~c_mantissaMask) | (mant & c_mantissaMask)));
         }
 
         /// <summary>
@@ -148,19 +145,19 @@ namespace System
                 return value;
             if (IsZero(value) || IsSubnormal(value))
                 return -SmallestPosNormal;
-            ushort mant = (ushort)(value._storage & MANTISSA_MASK);
+            ushort mant = (ushort)(value._storage & c_mantissaMask);
             // Mantissa is at min.
             if (mant == 0)
             {
                 // Decrement exponent.
-                ushort bexp = (ushort)((value._storage & BIASED_EXPONENT_MASK) - (1 << 10));
+                ushort bexp = (ushort)((value._storage & c_biasedExponentMask) - (1 << 10));
                 // Exponent is at min.
                 // Mantissa mask + 1 = min exponent.
-                if (bexp <= MANTISSA_MASK + 1)
-                    return IsNegative(value) ? NegZero : Zero;
-                return new Half((ushort)((value._storage & ~BIASED_EXPONENT_MASK) | (bexp & BIASED_EXPONENT_MASK)));
+                if (bexp <= c_mantissaMask + 1)
+                    return IsSigned(value) ? NegZero : Zero;
+                return new Half((ushort)((value._storage & ~c_biasedExponentMask) | (bexp & c_biasedExponentMask)));
             }
-            return new Half((ushort)((value._storage & ~MANTISSA_MASK) | ((mant - 1) & MANTISSA_MASK)));
+            return new Half((ushort)((value._storage & ~c_mantissaMask) | ((mant - 1) & c_mantissaMask)));
         }
 
         /// <summary>
@@ -178,7 +175,7 @@ namespace System
                 return x;
             // Preserve sign of x
             if (IsInfinity(y))
-                return new Half((ushort)((y._storage & (BIASED_EXPONENT_MASK | MANTISSA_MASK)) | (x._storage & SIGN_MASK)));
+                return new Half((ushort)((y._storage & (c_biasedExponentMask | c_mantissaMask)) | (x._storage & c_signMask)));
             return x ^ y;
         }
 
@@ -188,50 +185,5 @@ namespace System
         /// <remarks>IEEE 754-2019 comform implementation of "sourceFormat quantum(source, source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Half GetExponent(in Half value) => IsInfinity(value) ? Infinity : GetBase2Exponent(value);
-
-        /// <summary>
-        /// Returns the value x * (2 ^ y).
-        /// </summary>
-        /// <remarks>IEEE 754-2019 comform implementation of "sourceFormat ScaleB(source, logBFormat)".</remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half Scale2(Half x, int y)
-        {
-            if (IsNaN(x) || IsPositiveInfinity(x))
-                return x;
-            return x * (2 ^ y);
-        }
-
-        /// <summary>
-        /// Returns the natural (base e) logarithm of a specified number.
-        /// </summary>
-        /// <remarks>IEEE 754-2019 comform implementation of "logBFormat logB(source)".</remarks>
-        // Ported from C to C# source http://freshmeat.sourceforge.net/projects/icsilog
-        public static unsafe Half Log(in Half value)
-        {
-            if (IsNaN(value) || IsPositiveInfinity(value))
-                return value;
-            if (IsZero(value))
-                return NegInfinity;
-            if (IsNegative(value))
-                return NaN;
-            if (value == One)
-                return Zero;
-            const float log2_4 = 0.69314718055995f;
-            int exp = GetBase2Exponent(value);
-            int mant = value._storage & MANTISSA_MASK;
-            return (exp + s_logTable[mant]) * log2_4;
-        }
-
-        /// <summary>
-        /// Returns the square root of a specified number.
-        /// </summary>
-        /// <remarks>IEEE 754-2019 comform implementation of "sourceFormat squareRoot(source)".</remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half Sqrt(in Half value)
-        {
-            if (IsZero(value) && IsNegative(value))
-                return value;
-            return MathF.Sqrt(value);
-        }
     }
 }

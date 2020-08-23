@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.CompilerServices;
 
 namespace System
@@ -27,10 +26,10 @@ namespace System
         public static bool operator !=(in Half left, in Half right) => !left.Equals(right);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator < (in Half left, in Half right) => left.CompareTo(right) < 0;
+        public static bool operator <(in Half left, in Half right) => left.CompareTo(right) < 0;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator > (in Half left, in Half right) => left.CompareTo(right) > 0;
+        public static bool operator >(in Half left, in Half right) => left.CompareTo(right) > 0;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator <=(in Half left, in Half right) => left.CompareTo(right) <= 0;

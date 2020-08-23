@@ -1,135 +1,122 @@
-using System.Runtime.InteropServices;
-using System;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace System
 {
     public readonly unsafe partial struct Half
     {
         // IEEE 754 16bit binary floating point masking and flag constants.
-        private const ushort SIGN_MASK = 0x8000,
-                             BIASED_EXPONENT_MASK = 0x7C00,
-                             MANTISSA_MASK = 0x03FF,
-                             EXPONENT_BIAS = 0xF,
-                             SIGNIFICANT_BIT_FLAG = 0x0200,
-                             SIGNALING_NAN_FLAG = 0x0100,
-                             BIASED_OR_SIGNIFICANT_MASK = BIASED_EXPONENT_MASK | SIGNIFICANT_BIT_FLAG,
-                             MAX_BIASED_EXPONENT_VALUE = 0x1F;
-        private const sbyte MIN_BASE2_EXPONENT_VALUE = -14,
-                            MAX_BASE2_EXPONENT_VALUE = 15; // = EXPONENT_BIAS
+        private const ushort c_signMask = 0x8000,
+                             c_biasedExponentMask = 0x7C00,
+                             c_mantissaMask = 0x03FF,
+                             c_exponentMask = 0xF,
+                             c_significantBitFlag = 0x0200,
+                             c_signalingNanFlag = 0x0100,
+                             c_biasedOrSignificantMask = c_biasedExponentMask | c_significantBitFlag,
+                             c_maxBiasedExponentMask = 0x1F;
+        private const sbyte c_minBase2ExponentValue = -14,
+                            c_maxBase2ExponentValue = 15; // = EXPONENT_BIAS
         /*
          * Conversion using lookup tables, ported from C++ as implemented in http://www.fox-toolkit.org/ftp/fasthalffloatconversion.pdf.
          * We are using pointers for our lookup tables to avoid nasty range checks and validations, that come with the benefits of managed arrays.
          */
         private static readonly uint* s_mantissaTable, s_exponentTable;
         private static readonly ushort* s_offsetTable, s_baseTable, s_shiftTable;
-        private static readonly float* s_logTable;
 
         static Half()
         {
             // Initialize mantissa table.
-            s_mantissaTable = (uint*)Marshal.AllocHGlobal(sizeof(int) * 2048);
-            s_mantissaTable[0] = 0;
-            for (uint i = 1; i != 1024; i++)
+            s_mantissaTable = (uint*)Marshal.AllocHGlobal(sizeof(int) * 0x800);
+            for (uint i = 1; i != 0x400; i++)
                 s_mantissaTable[i] = ConvertMantissa(i);
-            for (uint i = 1024; i != 2048; i++)
-                s_mantissaTable[i] = 0x3800_0000 + ((i - 0x80) << 13);
+            for (uint i = 0x400; i != 0x800; i++)
+                s_mantissaTable[i] = 0x3800_0000u + ((i - 0x400) << 13);
+            s_mantissaTable[0] = 0;
 
             // Initialize exponent table
             s_exponentTable = (uint*)Marshal.AllocHGlobal(sizeof(int) * 64);
-            s_exponentTable[0] = 0;
             for (uint i = 1; i != 31; i++)
                 s_exponentTable[i] = i << 23;
-            s_exponentTable[31] = 0x4780_0000;
-            s_exponentTable[32] = 0x8000_0000;
             for (uint i = 33; i != 63; i++)
-                s_exponentTable[i] = 0x8000_0000 + ((i - 0x20) << 13);
-            s_exponentTable[63] = 0xC780_0000;
+                s_exponentTable[i] = 0x8000_0000u + ((i - 0x20) << 23);
+            s_exponentTable[0] = 0;
+            s_exponentTable[32] = 0x8000_0000u;
+            s_exponentTable[31] = 0x4780_0000u;
+            s_exponentTable[63] = 0xC780_0000u;
 
             // Initialize offset table
             s_offsetTable = (ushort*)Marshal.AllocHGlobal(sizeof(short) * 64);
+            for (uint i = 1; i != 64; i++)
+                s_offsetTable[i] = 0x0400;
             s_offsetTable[0] = 0;
-            for (uint i = 1; i != 32; i++)
-                s_offsetTable[i] = 1024;
             s_offsetTable[32] = 0;
 
             // Initialize base & shift table
             s_baseTable = (ushort*)Marshal.AllocHGlobal(sizeof(short) * 256);
             s_shiftTable = (ushort*)Marshal.AllocHGlobal(sizeof(short) * 512);
-            for(int i = 0; i != 0x100; i++)
+            for (int i = 0; i != 0x100; i++)
             {
-                int e = i - 127;
+                int e = i - 0x7F;
                 if (e < -24)
-                    // Very small numbers map to zero
+                // Very small numbers map to zero
                 {
                     s_baseTable[i | 0x000] = 0x0000;
-                    s_baseTable[i | 0x100] = SIGN_MASK;
+                    s_baseTable[i | 0x100] = c_signMask;
                     s_shiftTable[i | 0x000] = 24;
                     s_shiftTable[i | 0x100] = 24;
                 }
                 else if (e < -14)
-                    // Small numbers mmap to denorms
+                // Small numbers mmap to denorms
                 {
-                    s_baseTable[i | 0x000] = (ushort)(0x0400 >> (-e + MIN_BASE2_EXPONENT_VALUE));
-                    s_baseTable[i | 0x100] = (ushort)(0x0400 >> (-e + MIN_BASE2_EXPONENT_VALUE) | SIGN_MASK);
+                    s_baseTable[i | 0x000] = (ushort)(0x0400 >> (-e + c_minBase2ExponentValue));
+                    s_baseTable[i | 0x100] = (ushort)(0x0400 >> (-e + c_minBase2ExponentValue) | c_signMask);
                     s_shiftTable[i | 0x000] = (ushort)(-e - 1);
                     s_shiftTable[i | 0x100] = (ushort)(-e - 1);
                 }
                 else if (e <= 15)
-                    // Normal numbers just loose precision
+                // Normal numbers just loose precision
                 {
-                    s_baseTable[i | 0x000] = (ushort)((e + MAX_BASE2_EXPONENT_VALUE) << 10);
-                    s_baseTable[i | 0x100] = (ushort)((e + MAX_BASE2_EXPONENT_VALUE) << 10);
+                    s_baseTable[i | 0x000] = (ushort)((e + c_maxBase2ExponentValue) << 10);
+                    s_baseTable[i | 0x100] = (ushort)(((e + c_maxBase2ExponentValue) << 10) | c_signMask);
                     s_shiftTable[i | 0x000] = 13;
                     s_shiftTable[i | 0x100] = 13;
                 }
                 else if (e < 128)
-                    // Large numbers map to infinity
+                // Large numbers map to infinity
                 {
-                    s_baseTable[i | 0x000] = BIASED_EXPONENT_MASK;
+                    s_baseTable[i | 0x000] = c_biasedExponentMask;
                     s_baseTable[i | 0x100] = 0xFC00;
                     s_shiftTable[i | 0x000] = 24;
                     s_shiftTable[i | 0x100] = 24;
                 }
                 else
-                    // Infinity and NaN
+                // Infinity and NaN
                 {
-                    s_baseTable[i | 0x000] = BIASED_EXPONENT_MASK;
+                    s_baseTable[i | 0x000] = c_biasedExponentMask;
                     s_baseTable[i | 0x100] = 0xFC00;
                     s_shiftTable[i | 0x000] = 13;
                     s_shiftTable[i | 0x100] = 13;
                 }
-            }
-
-            // Initialize Log table
-            // Ported from C to C# source http://freshmeat.sourceforge.net/projects/icsilog
-            // We use a float table to save a cast, when multiplying the Half with log2_4 during rt.
-            // 0x400 = 1 << 10. for 10 mantissa bits
-            s_logTable = (float*)Marshal.AllocHGlobal(sizeof(float) * 0x400);
-            const float reci_log2_4 = 1 / 0.69314718055995f;
-            const float reci_precision = 1 / 0x400f;
-            float oneToTwo = 1 + (1 / 0x400f);
-            for (int i = 0; i != 0x400; i++)
-            {
-                s_logTable[i] = MathF.Log(oneToTwo) * reci_log2_4;
-                oneToTwo += reci_precision;
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint ConvertMantissa(uint i)
         {
-            uint m = i << 113;
-            uint e = 0;
-            while ((m & 0x0080_0000) == 0)
+            unchecked
             {
-                e -= 0x0080_0000;
-                m <<= 1;
+                uint m = i << 13; // Zero pad mantissaa
+                uint e = 0; // Zero exponent
+                while ((m & 0x0080_0000u) == 0) // While not normalized
+                {
+                    e -= 0x0080_0000u; // Decrement exponent (1 << 23)
+                    m <<= 1; // Shift mantissa
+                }
+                m &= ~0x0080_0000u; // Clear leading bit
+                e += 0x3880_0000u; // Adjust bias ((0x7F - 14) << 23)
+                return m | e;
             }
-            m &= 0x0080_0000;
-            e += 0x3880_0000;
-            return m | e;
         }
 
         private static float HalfToSingle(Half value)
@@ -145,22 +132,34 @@ namespace System
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static uint HalfBitsToSingle(ushort storage) => s_mantissaTable[s_offsetTable[storage >> 10] + (storage & 0x3ff)] + s_exponentTable[storage >> 10];
+        private static uint HalfBitsToSingle(ushort h)
+        {
+            //Debug
+            int sigExp = h >> 10,
+                mant = h & 0x03FF;
+            uint fBExp = s_exponentTable[sigExp],
+                 fMant = s_mantissaTable[s_offsetTable[sigExp] + (h & 0x03FF)];
+            return fMant + fBExp;
+            //return s_mantissaTable[s_offsetTable[h >> 10] + (h & 0x03FF)] + s_exponentTable[h >> 10];
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static ushort SingleBitsToHalf(uint storage) => (ushort)(s_baseTable[(storage >> 23) & 0x01FF] + ((storage & 0x007F_FFFF) >> s_shiftTable[(storage >> 23) & 0x01FF]));
+        private static ushort SingleBitsToHalf(uint s)
+        {
+            return (ushort)(s_baseTable[(s >> 23) & 0x01FF] + ((s & 0x007F_FFFF) >> s_shiftTable[(s >> 23) & 0x01FF]));
+        }
 
         #region String parse
         /*
          * Implemented using Single.
          */
-        public static Half Parse(string s) => (Half)Single.Parse(s);
+        public static Half Parse(string s) => Single.Parse(s);
 
-        public static Half Parse(string s, NumberStyles style) => (Half)Single.Parse(s, style);
+        public static Half Parse(string s, NumberStyles style) => Single.Parse(s, style);
 
-        public static Half Parse(string s, IFormatProvider provider) => (Half)Single.Parse(s, provider);
+        public static Half Parse(string s, IFormatProvider provider) => Single.Parse(s, provider);
 
-        public static Half Parse(string s, NumberStyles style, IFormatProvider provider) => (Half)Single.Parse(s, style, provider);
+        public static Half Parse(string s, NumberStyles style, IFormatProvider provider) => Single.Parse(s, style, provider);
 
         public static bool TryParse(string s, out Half result)
         {
@@ -169,16 +168,14 @@ namespace System
 
         public static bool TryParse(string s, NumberStyles style, IFormatProvider provider, out Half result)
         {
-            float res = Single.NaN;
-            bool success = Single.TryParse(s, style, provider, out res);
+            bool success = Single.TryParse(s, style, provider, out var res);
             result = res;
             return success;
         }
 
         private static bool TryParse(string s, NumberStyles style, NumberFormatInfo info, out Half result)
         {
-            float res = Single.NaN;
-            bool success = Single.TryParse(s, style, info, out res);
+            bool success = Single.TryParse(s, style, info, out var res);
             result = res;
             return success;
         }
@@ -190,7 +187,7 @@ namespace System
          */
         TypeCode IConvertible.GetTypeCode() => TypeCode.Single;
 
-        bool IConvertible.ToBoolean(IFormatProvider provider) => _storage == ZERO;
+        bool IConvertible.ToBoolean(IFormatProvider provider) => _storage == c_zero;
 
         byte IConvertible.ToByte(IFormatProvider provider) => Convert.ToByte(this, provider);
 
