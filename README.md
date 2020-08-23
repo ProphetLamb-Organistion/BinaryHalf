@@ -1,2 +1,3 @@
 # BinaryHalf
-A IEEE 754 complient 16bit binary floating point implementation written in C#.
+A paritally IEEE 754 conform 16bit binary floating point implementation written in C#.
+All implemented methods are IEEE 754-2019 conform, but only attributes (4.1, 4.2) comparison (5.6, 5.11), and equality comparison (5.11) operation are implemented. For all other operations and functionally please refer the the `System.MathF` libary. The main reason for not implementing own arithmetic is that the implementation for the Single (IEEE 754 32bit binary floating point) datatype are supported by intrinsic methods and thus much faster then any software implementation. Taking into account that casting to Single is backed by unmanged LUT (which results in very quick conversions), there is no reason to write software code that will still perform slower even thought only half of the data compared to Single is processed.
