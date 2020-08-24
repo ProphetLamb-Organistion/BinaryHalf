@@ -102,7 +102,7 @@ namespace System
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static uint ConvertMantissa(uint i)
+        private static uint ConvertMantissa(in uint i)
         {
             unchecked
             {
@@ -119,7 +119,7 @@ namespace System
             }
         }
 
-        private static float HalfToSingle(Half value)
+        private static float HalfToSingle(in Half value)
         {
             uint hBits = HalfBitsToSingle(value._storage);
             return *(float*)&hBits;
@@ -132,7 +132,7 @@ namespace System
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static uint HalfBitsToSingle(ushort h)
+        private static uint HalfBitsToSingle(in ushort h)
         {
             //Debug
             int sigExp = h >> 10,
@@ -144,7 +144,7 @@ namespace System
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static ushort SingleBitsToHalf(uint s)
+        private static ushort SingleBitsToHalf(in uint s)
         {
             return (ushort)(s_baseTable[(s >> 23) & 0x01FF] + ((s & 0x007F_FFFF) >> s_shiftTable[(s >> 23) & 0x01FF]));
         }

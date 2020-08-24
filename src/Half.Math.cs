@@ -75,14 +75,14 @@ namespace System
         /// </summary>
         /// <remarks>IEEE 754-2019 comform implementation of "sourceFormat roundToIntegralTiesToEven(source)" and "sourceFormat roundToInegralTiesToAway(source)". Implemented using the <see cref="MathF"/> libary.<remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half Round(in Half value, MidpointRounding mode) => (Half)MathF.Round(value, mode);
+        public static Half Round(in Half value, in MidpointRounding mode) => (Half)MathF.Round(value, mode);
 
         /// <summary>
         /// Rounds the value to a specifed number of fractional digits, and uses the specified rounding convention for midpoint values.
         /// </summary>
         /// <remarks>Implemented using the <see cref="MathF"/> libary.<remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half Round(in Half value, int digits, MidpointRounding mode) => (Half)MathF.Round(value, digits, mode);
+        public static Half Round(in Half value, in int digits, in MidpointRounding mode) => (Half)MathF.Round(value, digits, mode);
 
         /// <summary>
         /// Rounds a single-precision floating-point value to the nearest integral value, and rounds midpoint values to the nearest even number.

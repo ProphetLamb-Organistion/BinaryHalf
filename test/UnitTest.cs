@@ -62,7 +62,7 @@ namespace BinaryHalf.UnitTest
             // Zero ignores sign
             Assert.IsTrue(Half.Zero.Equals(Half.NegZero));
             // Any NaN is equal
-            Assert.IsTrue(Half.NaN.Equals(Half.CreateSignalingNan(0xFF)));
+            Assert.IsTrue(Half.NaN.Equals(Half.CreateNan(0xFF)));
             Assert.Pass();
         }
     }

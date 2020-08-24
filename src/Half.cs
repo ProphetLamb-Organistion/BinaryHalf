@@ -18,7 +18,7 @@ namespace System
         private readonly ushort _storage;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Half(ushort binaryData) => _storage = binaryData;
+        private Half(in ushort binaryData) => _storage = binaryData;
 
         #region Constructors
         /// <summary>
