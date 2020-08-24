@@ -12,9 +12,21 @@ namespace System
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator double(in Half value)
+        {
+            return HalfToSingle(value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static explicit operator Half(in float value)
         {
             return FloatToHalf(value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static explicit operator Half(in double value)
+        {
+            return FloatToHalf((float)value);
         }
         #endregion
 

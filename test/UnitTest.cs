@@ -14,12 +14,11 @@ namespace BinaryHalf.UnitTest
 
         }
 
-        const ushort c_maxMantissa = 0x0000,
-                     c_minMantissa = 0x03FF,
+        const ushort c_maxMantissa = 0x03FF,
                      c_minExponent = 0x0400,
                      c_maxExponent = 0x7C00,
                      c_sign = 0x8000;
-        ushort _mant = c_minMantissa, _bexp = 0, _sign = 0;
+        ushort _mant = 0, _bexp = 0, _sign = 0;
 
         Half GenerateNextHalf()
         {
@@ -34,7 +33,7 @@ namespace BinaryHalf.UnitTest
             if (_mant >= c_maxMantissa)
             {
                 // Increment exponent, reset mantissa
-                _mant = c_minMantissa;
+                _mant = 0;
                 _bexp += c_minExponent;
                 return Half.FromBits((ushort)(_mant | _bexp | _sign));
             }
@@ -47,16 +46,14 @@ namespace BinaryHalf.UnitTest
         [Test]
         public void ConversionTest()
         {
-            int iter = 0;
-            while(true)
+            for (int iter = 0; ; iter++)
             {
                 // Generate next half asserts Pass when all combinations are tested.
                 Half origin = GenerateNextHalf();
                 float lossless = origin;
-                Half fromFloat = lossless;
+                Half fromFloat = (Half)lossless;
                 Assert.IsTrue(origin.EpsilonEquals(fromFloat));
                 Assert.IsTrue(origin.Equals(fromFloat));
-                iter++;
             }
         }
 
@@ -64,10 +61,11 @@ namespace BinaryHalf.UnitTest
         public void EqualsTest()
         {
             Assert.AreEqual(Half.E, Half.E);
-            // Zero ignores case
+            // Zero ignores sign
             Assert.IsTrue(Half.Zero.Equals(Half.NegZero));
             // Any NaN is equal
             Assert.IsTrue(Half.NaN.Equals(Half.CreateSignalingNan(0xFF)));
+            Assert.Pass();
         }
     }
 }

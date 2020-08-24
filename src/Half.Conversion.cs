@@ -153,13 +153,13 @@ namespace System
         /*
          * Implemented using Single.
          */
-        public static Half Parse(string s) => Single.Parse(s);
+        public static Half Parse(string s) => (Half)Single.Parse(s);
 
-        public static Half Parse(string s, NumberStyles style) => Single.Parse(s, style);
+        public static Half Parse(string s, NumberStyles style) => (Half)Single.Parse(s, style);
 
-        public static Half Parse(string s, IFormatProvider provider) => Single.Parse(s, provider);
+        public static Half Parse(string s, IFormatProvider provider) => (Half)Single.Parse(s, provider);
 
-        public static Half Parse(string s, NumberStyles style, IFormatProvider provider) => Single.Parse(s, style, provider);
+        public static Half Parse(string s, NumberStyles style, IFormatProvider provider) => (Half)Single.Parse(s, style, provider);
 
         public static bool TryParse(string s, out Half result)
         {
@@ -169,14 +169,14 @@ namespace System
         public static bool TryParse(string s, NumberStyles style, IFormatProvider provider, out Half result)
         {
             bool success = Single.TryParse(s, style, provider, out var res);
-            result = res;
+            result = (Half)res;
             return success;
         }
 
         private static bool TryParse(string s, NumberStyles style, NumberFormatInfo info, out Half result)
         {
             bool success = Single.TryParse(s, style, info, out var res);
-            result = res;
+            result = (Half)res;
             return success;
         }
         #endregion

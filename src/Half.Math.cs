@@ -61,35 +61,35 @@ namespace System
         /// </summary>
         /// <remarks>IEEE 754-2019 comform implementation of "sourceFormat roundToIntegralTowardPositive(source)". Implemented using the <see cref="MathF"/> libary.<remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half Ceiling(in Half value) => MathF.Ceiling(value);
+        public static Half Ceiling(in Half value) => (Half)MathF.Ceiling(value);
 
         /// <summary>
         /// Rounds the value to an integral value toward negative infinity.
         /// </summary>
         /// <remarks>IEEE 754-2019 comform implementation of "sourceFormat roundToIntegralTowardNegative(source)". Implemented using the <see cref="MathF"/> libary.<remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half Floor(in Half value) => MathF.Floor(value);
+        public static Half Floor(in Half value) => (Half)MathF.Floor(value);
 
         /// <summary>
         /// Rounds the value to the nearest integer, and uses the specified rounding convention for midpoint values.
         /// </summary>
         /// <remarks>IEEE 754-2019 comform implementation of "sourceFormat roundToIntegralTiesToEven(source)" and "sourceFormat roundToInegralTiesToAway(source)". Implemented using the <see cref="MathF"/> libary.<remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half Round(in Half value, MidpointRounding mode) => MathF.Round(value, mode);
+        public static Half Round(in Half value, MidpointRounding mode) => (Half)MathF.Round(value, mode);
 
         /// <summary>
         /// Rounds the value to a specifed number of fractional digits, and uses the specified rounding convention for midpoint values.
         /// </summary>
         /// <remarks>Implemented using the <see cref="MathF"/> libary.<remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half Round(in Half value, int digits, MidpointRounding mode) => MathF.Round(value, digits, mode);
+        public static Half Round(in Half value, int digits, MidpointRounding mode) => (Half)MathF.Round(value, digits, mode);
 
         /// <summary>
         /// Rounds a single-precision floating-point value to the nearest integral value, and rounds midpoint values to the nearest even number.
         /// </summary>
         /// <remarks>Implemented using the <see cref="MathF"/> libary.<remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half Round(in Half value) => MathF.Round(value);
+        public static Half Round(in Half value) => (Half)MathF.Round(value);
 
         /// <summary>
         /// Returns the remainder of x divided by y.
@@ -104,7 +104,7 @@ namespace System
                 return y;
             if (IsInfinity(y))
                 return x;
-            return x - y * Truncate(x / y);
+            return (Half)(x - y * Truncate((Half)(x / y)));
         }
 
         /// <summary>
@@ -144,7 +144,7 @@ namespace System
             if (IsNegativeInfinity(value))
                 return value;
             if (IsZero(value) || IsSubnormal(value))
-                return -SmallestPosNormal;
+                return new Half(c_smallestPosNrm | c_signMask);
             ushort mant = (ushort)(value._storage & c_mantissaMask);
             // Mantissa is at min.
             if (mant == 0)
@@ -161,29 +161,10 @@ namespace System
         }
 
         /// <summary>
-        /// Returns a value with the numerical value x and the exponent y.
-        /// </summary>
-        /// <remarks>IEEE 754-2019 comform implementation of "sourceFormat quantize(source, source)".</remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half Quantize(in Half x, in Half y)
-        {
-            if (IsNaN(x))
-                return x;
-            if (IsNaN(y))
-                return y;
-            if (IsInfinity(x))
-                return x;
-            // Preserve sign of x
-            if (IsInfinity(y))
-                return new Half((ushort)((y._storage & (c_biasedExponentMask | c_mantissaMask)) | (x._storage & c_signMask)));
-            return x ^ y;
-        }
-
-        /// <summary>
         /// Returns the exponent of the value.
         /// </summary>
         /// <remarks>IEEE 754-2019 comform implementation of "sourceFormat quantum(source, source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half GetExponent(in Half value) => IsInfinity(value) ? Infinity : GetBase2Exponent(value);
+        public static Half GetExponent(in Half value) => IsInfinity(value) ? Infinity : (Half)GetBase2Exponent(value);
     }
 }

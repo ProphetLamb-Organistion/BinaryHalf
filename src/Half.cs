@@ -43,28 +43,28 @@ namespace System
         /// <remarks>IEEE 754-2019 comform implementation of "formatOf convertFromInt(int)".</remarks>
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half FromInt(int value) => value;
+        public static Half FromInt(int value) => (Half)value;
         #endregion
 
         #region Static members
-        public enum NumericClass
+        public enum NumericClass : sbyte
         {
-            SignalingNaN,
-            QuiteNaN,
-            NegativeInfinity,
-            NegativeNormal,
-            NegativeSubnormal,
-            NegativeZero,
-            PositiveZero,
-            PositiveSubnormal,
-            PositiveNormal,
-            PositiveInfinity
+            SignalingNaN =     -17,
+            QuiteNaN =         -16,
+            NegativeInfinity =  -4,
+            NegativeNormal =    -3,
+            NegativeSubnormal = -2,
+            NegativeZero =      -1,
+            PositiveZero =       1,
+            PositiveSubnormal =  2,
+            PositiveNormal =     3,
+            PositiveInfinity =   4
         };
 
         public enum RadixMode : byte
         {
-            Two = 2,
-            Ten = 10
+            Two = 0x02,
+            Ten = 0x0A
         }
 
         /// <summary>
