@@ -12,7 +12,7 @@ namespace System
     public readonly partial struct Half :
         IComparable, IConvertible, IFormattable,
         IComparable<Half>, IComparable<float>, IComparable<double>, IComparable<object?>,
-        IEquatable<Half>, IEquatable<float>, IEquatable<double>
+        IEquatable<Half>, IEquatable<float>, IEquatable<double>, IEquatable<object?>
     {
         [FieldOffset(0)]
         private readonly ushort _storage;
@@ -21,28 +21,19 @@ namespace System
         private Half(ushort binaryData) => _storage = binaryData;
 
         #region Constructors
+        /// <summary>
+        /// Returns a new instance of Half with the specified storage bits.
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Half FromBits(in ushort littleEdian) => new Half(littleEdian);
 
-        public static Half FromBigEdianBits(in ushort bigEdian)
-        {
-            byte[] bytes = BitConverter.GetBytes(bigEdian);
-            Array.Reverse(bytes);
-            return new Half(BitConverter.ToUInt16(bytes));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half CreateSignalingNan(byte payload) => new Half((ushort)(c_signalingNan | payload));
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half CreateQuiteNaN(byte payload) => new Half((ushort)(c_quiteNaN | payload));
-
         /// <summary>
-        /// Converts a 32bit integer to a 16bit binary floating point value.
+        /// Returns a new signaling NaN Half with the specified payload.
         /// </summary>
-        /// <remarks>IEEE 754-2019 comform implementation of "formatOf convertFromInt(int)".</remarks>
+        /// <param name="payload"></param>
+        /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half FromInt(int value) => (Half)value;
+        public static Half CreateNan(byte payload) => new Half((ushort)(c_signalingNan | payload));
         #endregion
 
         #region Static members
