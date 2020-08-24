@@ -29,7 +29,7 @@ namespace System
             {
                 // Both are NaN; ignore signaling and payload
                 if ((_storage & other._storage & c_quiteNaN) == c_quiteNaN)
-                    return true;
+                    return false;
                 // Both are Zero; ignore sign
                 if (IsZero(this) && IsZero(other))
                     return true;
@@ -43,21 +43,68 @@ namespace System
         /// <summary>
         /// Indicates whether the current object is equal, or widthin margin of error to another object.
         /// </summary>
-        /// <param name="other"></param>
-        /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool EpsilonEquals(double other) => Equals(other) || Math.Abs(this - other) <= EpsilonD;
+        public bool EpsilonEquals(in double other) => Equals(other) || Math.Abs(this - other) <= EpsilonD;
 
+        /// <summary>
+        /// Indicates whether the current object is equal, or widthin margin of error to another object.
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool EpsilonEquals(float other) => Equals(other) || MathF.Abs(this - other) <= EpsilonS;
+        public bool EpsilonEquals(in float other) => Equals(other) || MathF.Abs(this - other) <= EpsilonS;
 
+        /// <summary>
+        /// Indicates whether the current object is equal, or widthin margin of error to another object.
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool EpsilonEquals(Half other) => Equals(other) || MathF.Abs(this - other) <= EpsilonS;
+        public bool EpsilonEquals(in Half other) => Equals(other) || MathF.Abs(this - other) <= EpsilonS;
         #endregion
 
         #region IComparable members
+        private static int InternalComparison(in Half left, in Half right, in int falsify)
+        {
+            /* 
+             * In order to comply with the IEEE 754 NaN comparison specification that any comparison with NaN as a parameter will yield false,
+             * the additional parameter contains the value to return if so desired is passed.
+             */
+            if (left._storage == right._storage)
+                return 0;
+            bool thisSigned = IsSigned(left),
+                 otherSigned = IsSigned(right);
+            if (IsSubnormal(left) || IsSubnormal(right))
+            {
+                // Not a number cannot be compared to a number
+                if (IsNaN(left) || IsNaN(right))
+                    return falsify;
+                if (IsInfinity(left))
+                    // +inf cmp +inf == 0, -inf cmp -inf == 0
+                    return IsInfinity(right) && thisSigned == otherSigned ? 0
+                    // otherwise, +inf > other and -inf < other
+                         : thisSigned ? 1 : -1;
+            }
+            // Compare sign
+            if (thisSigned != otherSigned)
+                return thisSigned ? -1 : 1;
+            // Compare exponent
+            int bexpDelta = (left._storage & c_biasedExponentMask) - (right._storage & c_biasedExponentMask);
+            if (bexpDelta < 0)
+                return -1;
+            if (bexpDelta > 0)
+                return 1;
+            // Compare mantissa
+            return ((uint)left._storage & c_mantissaMask).CompareTo((uint)right._storage & c_mantissaMask);
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int CompareTo(object obj)
+        public int CompareTo(Half other) => InternalComparison(this, other, 0);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int CompareTo(float other) => InternalComparison(this, (Half)other, 0);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int CompareTo(double other) => InternalComparison(this, (Half)other, 0);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int CompareTo(object? obj)
         {
             return obj switch
             {
@@ -66,67 +113,6 @@ namespace System
                 double f64 => CompareTo(f64),
                 _ => throw new ArgumentException("Object must be a Half, Single, or Double.")
             };
-        }
-
-        public int CompareTo(Half other)
-        {
-            if (_storage == other._storage)
-                return 0;
-            // Not a number cannot be compared to a number; ignore NaN payload.
-            if (IsNaN(this) || IsNaN(other))
-                return 0;
-            if (IsSubnormal(this) && IsSubnormal(other))
-            {
-                if (IsPositiveInfinity(this))
-                    return 1;
-                if (IsNegativeInfinity(this))
-                    return -1;
-                // Subnormal values are equal.
-                return 0;
-            }
-            // Compare sign
-            if (IsSigned(this) != IsSigned(other))
-                return IsSigned(this) ? -1 : 1;
-            // Compare exponent
-            int expDelta = (_storage & c_biasedExponentMask) - (other._storage & c_biasedExponentMask);
-            if (expDelta < 0)
-                return -1;
-            if (expDelta > 0)
-                return 1;
-            // Compare mantissa
-            return (_storage & c_mantissaMask).CompareTo(other._storage & c_mantissaMask);
-        }
-
-        public int CompareTo(float other)
-        {
-            // Not a number cannot be compared to a number; ignore NaN payload.
-            if (IsNaN(this) || Single.IsNaN(other))
-                return 0;
-            if (IsSubnormal(this) && Single.IsSubnormal(other))
-            {
-                if (IsPositiveInfinity(this))
-                    return 1;
-                if (IsNegativeInfinity(this))
-                    return -1;
-                // Convert subnormal values to Single
-            }
-            return CompareTo((Half)other);
-        }
-
-        public int CompareTo(double other)
-        {
-            // Not a number cannot be compared to a number; ignore NaN payload.
-            if (IsNaN(this) || Double.IsNaN(other))
-                return 0;
-            if (IsSubnormal(this) && Double.IsSubnormal(other))
-            {
-                if (IsPositiveInfinity(this))
-                    return 1;
-                if (IsNegativeInfinity(this))
-                    return -1;
-                // Convert subnormal values to Double
-            }
-            return CompareTo((Half)other);
         }
         #endregion
     }
