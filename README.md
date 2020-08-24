@@ -128,5 +128,7 @@ Following arithmetic operations on Half cast the Half to Single, then execute th
 * Sqrt2: √2
 
 ## Sources 
+
 Conversion using small lookup tables, ported from C++ to C# as implemented in http://www.fox-toolkit.org/ftp/fasthalffloatconversion.pdf.
+
 Many constant values grabbed from: https://github.com/starkat99/half-rs.
