@@ -8,6 +8,13 @@ All implemented methods are IEEE 754-2019 conform, but only general operations (
 
 Furthermore this valuetype does not implement any signaling comparison operations, i.e. no operation on sNaN or qNaN will result in an `InvalidOperationException` to be thrown, instead the NaN value with payload is preserved or silenced.
 
+## Constructors
+
+Half has no publicly exposed constructor methods, but static constructors.
+
+* `FromBits(ushort)`: Returns a new instance of Half with the specified storage bits.
+* `CreateNan(byte)`: Returns a new signaling NaN Half with the specified payload.
+
 ## General operations
 
 Entires maked with [Non IEEE] are extra functionallity not definded in the IEEE 754-2019 specification.
