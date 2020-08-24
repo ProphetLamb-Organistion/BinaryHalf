@@ -11,7 +11,7 @@ namespace System
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public readonly partial struct Half :
         IComparable, IConvertible, IFormattable,
-        IComparable<Half>, IComparable<float>, IComparable<double>,
+        IComparable<Half>, IComparable<float>, IComparable<double>, IComparable<object?>,
         IEquatable<Half>, IEquatable<float>, IEquatable<double>
     {
         [FieldOffset(0)]
@@ -22,9 +22,9 @@ namespace System
 
         #region Constructors
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half FromBits(ushort littleEdian) => new Half(littleEdian);
+        public static Half FromBits(in ushort littleEdian) => new Half(littleEdian);
 
-        public static Half FromBigEdianBits(ushort bigEdian)
+        public static Half FromBigEdianBits(in ushort bigEdian)
         {
             byte[] bytes = BitConverter.GetBytes(bigEdian);
             Array.Reverse(bytes);
@@ -41,7 +41,6 @@ namespace System
         /// Converts a 32bit integer to a 16bit binary floating point value.
         /// </summary>
         /// <remarks>IEEE 754-2019 comform implementation of "formatOf convertFromInt(int)".</remarks>
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Half FromInt(int value) => (Half)value;
         #endregion
@@ -254,7 +253,7 @@ namespace System
         /// Represents the storage bits of the <see cref="Half"/>.
         /// </summary>
         /// <returns></returns>
-        public ushort GetBits() => _storage;
+        public ref readonly ushort GetBits(in Half value) { return ref value._storage; }
 
         public override string ToString() => ((float)this).ToString();
 

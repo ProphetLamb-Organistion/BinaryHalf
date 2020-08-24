@@ -27,7 +27,7 @@ namespace System
         /// </summary>
         /// <remarks>IEEE 754-2019 comform implementation of "sourceFormat copySign(source, source)".</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Half CopySign(Half x, Half y) => new Half((ushort)((y._storage & c_signMask) | (x._storage & (c_biasedExponentMask | c_mantissaMask))));
+        public static Half CopySign(in Half x, in Half y) => new Half((ushort)((y._storage & c_signMask) | (x._storage & (c_biasedExponentMask | c_mantissaMask))));
 
         /// <summary>
         /// Rounds the value towards zero.

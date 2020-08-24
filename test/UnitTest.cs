@@ -10,9 +10,7 @@ namespace BinaryHalf.UnitTest
     {
         [SetUp]
         public void SetUp()
-        {
-
-        }
+        { }
 
         const ushort c_maxMantissa = 0x03FF,
                      c_minExponent = 0x0400,
@@ -52,8 +50,8 @@ namespace BinaryHalf.UnitTest
                 Half origin = GenerateNextHalf();
                 float lossless = origin;
                 Half fromFloat = (Half)lossless;
-                Assert.IsTrue(origin.EpsilonEquals(fromFloat));
-                Assert.IsTrue(origin.Equals(fromFloat));
+                Assert.IsTrue(origin.EpsilonEquals(fromFloat) || Half.IsNaN(origin)); // NaN =|= NaN
+                Assert.IsTrue(origin.Equals(fromFloat) || Half.IsNaN(origin));
             }
         }
 
