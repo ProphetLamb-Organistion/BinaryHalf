@@ -9,19 +9,7 @@ namespace System
         public static implicit operator float(in Half value) => HalfToSingle(value);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator double(in Half value) => HalfToSingle(value);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static explicit operator decimal(in Half value) => (decimal)HalfToSingle(value);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static explicit operator Half(in float value) => FloatToHalf(value);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static explicit operator Half(in double value) => FloatToHalf((float)value);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static explicit operator Half(in decimal value) => FloatToHalf((float)value);
         #endregion
 
         #region Comparison
