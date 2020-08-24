@@ -59,16 +59,18 @@ Entires maked with [Non IEEE] are extra functionallity not definded in the IEEE 
 
 ## Comparison operations
 
+All comparison operations are quite, meaning they preserve the NaN with payload instead of signaling an `InvalidOperationException` when a NaN value is passed as a parameter.
+
 * `Boolean Equals(Half|Single|Double)`: Indicates whether the current object is equal to another object.
 * `Boolean EpsilonEquals(Half|Single|Double)`: Indicates whether the current object is equal, or widthin margin of error to another object.
 * `Int32 CompareTo(Half|Single|Double)`: Compares the current instance with another object of the same type and returns an integer that indicates whether the current instance precedes, follows, or occurs in the same position in the sort order as the other object.
 
-* `==`: Inline call to `Equals(Half|Single|Double)`
-* `!=`: Inline call to `!Equals(Half|Single|Double)`
-* `<`: Inline call to `CompareTo(Half|Single|Double) < 0`
-* `>`: Inline call to `CompareTo(Half|Single|Double) > 0`
-* `<=`: Inline call to `CompareTo(Half|Single|Double) <= 0`
-* `>=`: Inline call to `CompareTo(Half|Single|Double) >= 0`
+* `==`
+* `!=`
+* `<`
+* `>`
+* `<=`
+* `>=`
 
 ## Cast operators
 
