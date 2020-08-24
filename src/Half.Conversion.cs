@@ -189,35 +189,35 @@ namespace System
 
         bool IConvertible.ToBoolean(IFormatProvider provider) => _storage == c_zero;
 
-        byte IConvertible.ToByte(IFormatProvider provider) => Convert.ToByte(this, provider);
+        byte IConvertible.ToByte(IFormatProvider provider) => Convert.ToByte((float)this, provider);
 
-        char IConvertible.ToChar(IFormatProvider provider) => Convert.ToChar(this, provider);
+        char IConvertible.ToChar(IFormatProvider provider) => Convert.ToChar((float)this, provider);
 
-        DateTime IConvertible.ToDateTime(IFormatProvider provider) => Convert.ToDateTime(this, provider);
+        DateTime IConvertible.ToDateTime(IFormatProvider provider) => Convert.ToDateTime((float)this, provider);
 
-        decimal IConvertible.ToDecimal(IFormatProvider provider) => Convert.ToDecimal(this, provider);
+        decimal IConvertible.ToDecimal(IFormatProvider provider) => Convert.ToDecimal((float)this, provider);
 
-        double IConvertible.ToDouble(IFormatProvider provider) => Convert.ToDouble(this, provider);
+        double IConvertible.ToDouble(IFormatProvider provider) => Convert.ToDouble((float)this, provider);
 
-        short IConvertible.ToInt16(IFormatProvider provider) => Convert.ToInt16(this, provider);
+        short IConvertible.ToInt16(IFormatProvider provider) => Convert.ToInt16((float)this, provider);
 
-        int IConvertible.ToInt32(IFormatProvider provider) => Convert.ToInt32(this, provider);
+        int IConvertible.ToInt32(IFormatProvider provider) => Convert.ToInt32((float)this, provider);
 
-        long IConvertible.ToInt64(IFormatProvider provider) => Convert.ToInt64(this, provider);
+        long IConvertible.ToInt64(IFormatProvider provider) => Convert.ToInt64((float)this, provider);
 
-        sbyte IConvertible.ToSByte(IFormatProvider provider) => Convert.ToSByte(this, provider);
+        sbyte IConvertible.ToSByte(IFormatProvider provider) => Convert.ToSByte((float)this, provider);
 
-        float IConvertible.ToSingle(IFormatProvider provider) => Convert.ToSingle(this, provider);
+        float IConvertible.ToSingle(IFormatProvider provider) => Convert.ToSingle((float)this, provider);
 
-        string IConvertible.ToString(IFormatProvider provider) => Convert.ToString(this, provider);
+        string IConvertible.ToString(IFormatProvider provider) => Convert.ToString((float)this, provider);
 
-        object IConvertible.ToType(Type conversionType, IFormatProvider provider) => Convert.ChangeType((float)this, conversionType, provider);
+        object IConvertible.ToType(Type conversionType, IFormatProvider provider) => Convert.ChangeType((float)(float)this, conversionType, provider);
 
-        ushort IConvertible.ToUInt16(IFormatProvider provider) => Convert.ToUInt16(this);
+        ushort IConvertible.ToUInt16(IFormatProvider provider) => Convert.ToUInt16((float)this);
 
-        uint IConvertible.ToUInt32(IFormatProvider provider) => Convert.ToUInt32(this);
+        uint IConvertible.ToUInt32(IFormatProvider provider) => Convert.ToUInt32((float)this);
 
-        ulong IConvertible.ToUInt64(IFormatProvider provider) => Convert.ToUInt64(this);
+        ulong IConvertible.ToUInt64(IFormatProvider provider) => Convert.ToUInt64((float)this);
         #endregion
     }
 }
